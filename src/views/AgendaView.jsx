@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { CalendarDays, Plus, XCircle, Clock, Filter, Camera } from 'lucide-react';
-import { THEME } from '../utils/constants';
+import { THEME, getFilteredRhk, getFilteredRenHar } from '../utils/constants';
 
-export default function AgendaView({ agendas, setAgendas, filteredRhkList, masterRhk, agendaFilter, setAgendaFilter, showToast }) {
+export default function AgendaView({ profile, agendas, setAgendas, masterRhk, agendaFilter, setAgendaFilter, showToast, auth, db }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ tgl: '', jam: '', kegiatan: '', rhkId: '', renHarId: '', keterangan: '', foto: null });
 
-  const safeAgendas = Array.isArray(agendas) ? agendas : [];
-  const safeMasterRhk = Array.isArray(masterRhk) ? masterRhk : [];
-  const safeFilteredRhkList = Array.isArray(filteredRhkList) ? filteredRhkList : [];
-  
-  // ANTI BLANK PAGE
+  const availableRhks = getFilteredRhk(masterRhk, profile);
+  const selectedRhkMaster = availableRhks.find(r => r?.id === form.rhkId);
+  const availableRenHars = getFilteredRenHar(selectedRhkMaster?.renHar, profile);
+
   const safeFilter = agendaFilter || { type: null, value: null };
 
   const handleFilter = (type, value) => {
@@ -18,17 +17,26 @@ export default function AgendaView({ agendas, setAgendas, filteredRhkList, maste
     else { setAgendaFilter({ type, value }); showToast(`Filter Aktif: ${value}`, "success"); }
   };
 
-  const handleAddAgenda = (e) => {
+  const handleAddAgenda = async (e) => {
     e.preventDefault();
     if (!form.rhkId || !form.renHarId) return showToast("Harap pilih RHK dan Rencana Harian!", "error");
-    setAgendas([{ id: Date.now(), ...form }, ...safeAgendas]);
+    
+    const newAgenda = { id: Date.now(), ...form };
+    const updatedAgendas = [newAgenda, ...agendas];
+    
+    setAgendas(updatedAgendas);
     setForm({ tgl: '', jam: '', kegiatan: '', rhkId: '', renHarId: '', keterangan: '', foto: null });
     setShowForm(false);
-    showToast("Agenda berhasil disimpan!", "success");
+    
+    const user = auth?.currentUser;
+    if (user && db) {
+        const { update, ref } = await import('firebase/database');
+        await update(ref(db, `users/${user.uid}`), { agendas: updatedAgendas });
+    }
+    showToast("Agenda berhasil disimpan ke Cloud!", "success");
   };
 
-  const selectedRhkMaster = safeMasterRhk.find(r => r?.id === form.rhkId);
-  const displayedAgendas = safeAgendas.filter(a => !safeFilter.type || a[safeFilter.type] === safeFilter.value);
+  const displayedAgendas = agendas.filter(a => !safeFilter.type || a[safeFilter.type] === safeFilter.value);
 
   return (
     <div className="animate-in fade-in duration-300">
@@ -54,15 +62,15 @@ export default function AgendaView({ agendas, setAgendas, filteredRhkList, maste
               <label className="text-[10px] font-bold text-slate-600 mb-1 block uppercase tracking-wider">RHK (Sesuai Jabatan)</label>
               <select className={THEME.glossyInput} value={form.rhkId} onChange={e => setForm({...form, rhkId: e.target.value, renHarId: ''})} required>
                 <option value="">-- Pilih RHK Kemensos --</option>
-                {safeFilteredRhkList.map(r => <option key={r.id} value={r.id}>{r.id} - {r?.name?.substring(0, 50)}...</option>)}
+                {availableRhks.map(r => <option key={r.id} value={r.id}>{r.id} - {r?.name?.substring(0, 50)}...</option>)}
               </select>
             </div>
             {form.rhkId && (
               <div className="animate-in fade-in slide-in-from-left-2">
-                <label className="text-[10px] font-bold text-slate-600 mb-1 block uppercase tracking-wider">Rencana Kegiatan Harian</label>
+                <label className="text-[10px] font-bold text-slate-600 mb-1 block uppercase tracking-wider">Rencana Harian (Difilter Berdasarkan Jabatan)</label>
                 <select className={THEME.glossyInput} value={form.renHarId} onChange={e => setForm({...form, renHarId: e.target.value})} required>
                   <option value="">-- Pilih Rencana Harian --</option>
-                  {selectedRhkMaster?.renHar?.map(h => <option key={h.id} value={h.id}>{h.id} - {h?.name?.substring(0, 50)}...</option>)}
+                  {availableRenHars.map(h => <option key={h.id} value={h.id}>{h.id} - {h?.name?.substring(0, 50)}...</option>)}
                 </select>
               </div>
             )}
@@ -99,8 +107,8 @@ export default function AgendaView({ agendas, setAgendas, filteredRhkList, maste
       <div className="space-y-4">
         <p className="text-[10px] text-slate-400 italic mb-2 font-medium px-1">*Klik label (Tanggal/RHK/Rencana) untuk menyaring daftar.</p>
         {displayedAgendas.length > 0 ? displayedAgendas.map((item) => {
-          const rhkName = safeMasterRhk.find(r => r?.id === item.rhkId)?.name;
-          const renHarName = safeMasterRhk.find(r => r?.id === item.rhkId)?.renHar?.find(h => h?.id === item.renHarId)?.name;
+          const rhkName = masterRhk.find(r => r?.id === item.rhkId)?.name;
+          const renHarName = masterRhk.find(r => r?.id === item.rhkId)?.renHar?.find(h => h?.id === item.renHarId)?.name;
 
           return (
             <div key={item.id} className={`${THEME.glossyCard} hover:border-blue-300 transition-all shadow-sm group`}>

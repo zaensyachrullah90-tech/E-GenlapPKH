@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Wand2, Clock, MapPin, FileText, ListTodo, PenTool, CloudUpload, Image as ImageIcon, XCircle, FilePlus, Trash2, Zap, Users } from 'lucide-react';
-import { THEME, GAS_API_URL } from '../utils/constants';
+import { THEME, GAS_API_URL, getFilteredRhk, getFilteredRenHar } from '../utils/constants';
 
-export default function EngineView({ profile, tokens, role, setTokens, showToast, showLoading, reports, setReports, masterRhk, filteredRhkList, getBulanFolder }) {
+export default function EngineView({ profile, tokens, role, setTokens, showToast, showLoading, reports, setReports, masterRhk, getBulanFolder, auth, db }) {
   const [rhkId, setRhkId] = useState('');
   const [renHarId, setRenHarId] = useState('');
   const [tglLaporan, setTglLaporan] = useState('');
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
-  const [kabupaten, setKabupaten] = useState('Kabupaten Tapin');
+  const [kabupaten, setKabupaten] = useState(profile?.kabupaten || '');
   const [kecamatan, setKecamatan] = useState('');
   const [desa, setDesa] = useState('');
 
@@ -23,6 +23,13 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
   const [keteranganAi, setKeteranganAi] = useState('');
   const [fotoList, setFotoList] = useState([]); 
   const [lampiranList, setLampiranList] = useState([]);
+
+  // FILTER RHK UTAMA
+  const availableRhks = getFilteredRhk(masterRhk, profile);
+  
+  // FILTER RENCANA HARIAN CERDAS BERDASARKAN JABATAN
+  const selectedRhkMaster = availableRhks.find(r => r.id === rhkId);
+  const availableRenHars = getFilteredRenHar(selectedRhkMaster?.renHar, profile);
 
   const addSurat = () => setSuratList([...suratList, { id: Date.now(), nomor: '', tgl: '', perihal: '' }]);
   const removeSurat = (id) => setSuratList(suratList.filter(s => s.id !== id));
@@ -96,14 +103,6 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
     );
   };
 
-  const triggerDummyDownload = (filename) => {
-      const element = document.createElement("a");
-      const file = new Blob(["Dokumen PDF ini di-generate secara lokal karena Link Drive kosong/error."], {type: 'application/pdf'});
-      element.href = URL.createObjectURL(file);
-      element.download = filename + ".pdf";
-      document.body.appendChild(element); element.click(); document.body.removeChild(element);
-  };
-
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!rhkId || !renHarId) return showToast("Harap pilih RHK dan Rencana Harian di paling atas!", "error");
@@ -127,47 +126,47 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
       const response = await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) });
       const result = await response.json();
       
-      const safeMasterRhk = Array.isArray(masterRhk) ? masterRhk : [];
-      const renHarName = safeMasterRhk.find(r => r?.id === rhkId)?.renHar?.find(h => h?.id === renHarId)?.name || 'Kegiatan';
+      const renHarName = availableRenHars.find(h => h.id === renHarId)?.name || 'Kegiatan';
       const folderBulan = getBulanFolder(tglLaporan);
       
       const newReport = {
         id: Date.now(), tgl: tglLaporan, jam: jamMulai, k: dynamicData.judul || renHarName,
         status: "Sukses", rhkId: rhkId, folderPath: `${rhkId} / ${folderBulan} / ${renHarName}`, driveLink: result.driveLink || '#'
       };
-      setReports([newReport, ...reports]); 
       
-      if (!profile.driveId) {
-          showToast("Laporan diunduh ke HP. Mohon upload manual.", "success");
-          if(result.pdfBase64) {
-            const link = document.createElement('a'); link.href = `data:application/pdf;base64,${result.pdfBase64}`; link.download = `Laporan_${tglLaporan}.pdf`;
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-          } else { triggerDummyDownload(`Laporan_${tglLaporan}`); }
-      } else { showToast("Laporan Berhasil ke Drive!", "success"); }
+      const updatedReports = [newReport, ...reports];
+      setReports(updatedReports);
+      
+      const user = auth.currentUser;
+      // Perbarui Data Database Reports dan Kurangi Token di Cloud
+      if (user) {
+         const { update, ref } = await import('firebase/database');
+         await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
+      }
+      
+      showToast("Laporan Berhasil ke Drive!", "success"); 
     } catch (err) {
        if(role !== 'admin') setTokens(t => t - 1);
-       const safeMasterRhk = Array.isArray(masterRhk) ? masterRhk : [];
-       const renHarName = safeMasterRhk.find(r => r?.id === rhkId)?.renHar?.find(h => h?.id === renHarId)?.name || 'Kegiatan';
+       const renHarName = availableRenHars.find(h => h.id === renHarId)?.name || 'Kegiatan';
        const folderBulan = getBulanFolder(tglLaporan);
 
        const newReport = {
          id: Date.now(), tgl: tglLaporan, jam: jamMulai, k: dynamicData.judul || renHarName,
          status: "Sukses Lokal", rhkId: rhkId, folderPath: `${rhkId} / ${folderBulan} / ${renHarName}`, driveLink: '#'
        };
-       setReports([newReport, ...reports]); 
+       const updatedReports = [newReport, ...reports];
+       setReports(updatedReports);
 
-       if (!profile.driveId) {
-           showToast("Laporan Diunduh (Offline Mode).", "success");
-           triggerDummyDownload(`Laporan_${tglLaporan}`);
-       } else { showToast("Simulasi Offline Berhasil", "success"); }
+       const user = auth.currentUser;
+       if (user) {
+          const { update, ref } = await import('firebase/database');
+          await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
+       }
+       showToast("Simulasi Offline Berhasil", "success");
     } finally {
         showLoading(false);
     }
   };
-
-  const safeFilteredRhkList = Array.isArray(filteredRhkList) ? filteredRhkList : [];
-  const safeMasterRhk = Array.isArray(masterRhk) ? masterRhk : [];
-  const selectedRhkMaster = safeMasterRhk.find(r => r?.id === rhkId);
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
@@ -183,15 +182,15 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
               <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">RHK (Tampil Sesuai Jabatan)</label>
               <select className={THEME.glossyInput} value={rhkId} onChange={e => {setRhkId(e.target.value); setRenHarId(''); setDynamicData({});}} required>
                 <option value="">-- Pilih RHK Kemensos --</option>
-                {safeFilteredRhkList.map(r => <option key={r.id} value={r.id}>{r.id} - {r?.name?.substring(0, 75)}...</option>)}
+                {availableRhks.map(r => <option key={r.id} value={r.id}>{r.id} - {r?.name?.substring(0, 75)}...</option>)}
               </select>
             </div>
             {rhkId && (
               <div className="animate-in fade-in slide-in-from-top-2">
-                <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Rencana Harian (Penentu Sub-Folder)</label>
+                <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Rencana Harian (Tampil Sesuai Jabatan)</label>
                 <select className={THEME.glossyInput} value={renHarId} onChange={e => setRenHarId(e.target.value)} required>
                   <option value="">-- Pilih Rencana Harian --</option>
-                  {selectedRhkMaster?.renHar?.map(h => <option key={h.id} value={h.id}>{h.id} - {h?.name?.substring(0, 75)}...</option>)}
+                  {availableRenHars.map(h => <option key={h.id} value={h.id}>{h.id} - {h?.name?.substring(0, 75)}...</option>)}
                 </select>
               </div>
             )}
@@ -228,40 +227,8 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
             </div>
 
             <div className={THEME.glossyCard}>
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-5">
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2"><FileText size={16} className="text-emerald-600"/> 4. Dasar Pelaksanaan Tugas</h3>
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 transition-all">
-                  <input type="checkbox" checked={adaSuratTugas} onChange={(e) => { setAdaSuratTugas(e.target.checked); if (e.target.checked && suratList.length === 0) setSuratList([{ id: Date.now(), nomor: '', tgl: '', perihal: '' }]); }} className="w-4 h-4 accent-blue-600 rounded" />
-                  Ada Surat Tugas?
-                </label>
-              </div>
-              
-              {adaSuratTugas ? (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                  <div className="text-right">
-                     <button type="button" onClick={addSurat} className="text-xs font-bold bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm">+ Tambah Surat Lainnya</button>
-                  </div>
-                  {suratList.map((surat, index) => (
-                    <div key={surat.id} className="relative bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-                      {suratList.length > 1 && (<button type="button" onClick={() => removeSurat(surat.id)} className="absolute top-4 right-4 text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg"><Trash2 size={16}/></button>)}
-                      <p className="text-xs font-bold text-blue-800 mb-4 border-b border-slate-200 pb-1 inline-block">Surat Ke-{index + 1}</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Nomor Surat</label><input type="text" className={THEME.glossyInput} value={surat.nomor} onChange={e => updateSurat(surat.id, 'nomor', e.target.value)} required /></div>
-                        <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Tanggal Surat</label><input type="date" className={THEME.glossyInput} value={surat.tgl} onChange={e => updateSurat(surat.id, 'tgl', e.target.value)} required /></div>
-                        <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Perihal</label><input type="text" className={THEME.glossyInput} value={surat.perihal} onChange={e => updateSurat(surat.id, 'perihal', e.target.value)} required /></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-500 text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">Tidak ada surat tugas yang dilampirkan.</p>
-              )}
-            </div>
-
-            <div className={THEME.glossyCard}>
-              <h3 className="text-sm font-bold text-slate-800 mb-5 border-b border-slate-100 pb-2 flex items-center gap-2"><CloudUpload size={16} className="text-emerald-600"/> 5. Media Bukti & Lampiran</h3>
+              <h3 className="text-sm font-bold text-slate-800 mb-5 border-b border-slate-100 pb-2 flex items-center gap-2"><CloudUpload size={16} className="text-emerald-600"/> 4. Media Bukti & Lampiran</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
                 <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
                   <div className="flex justify-between items-center mb-4">
                     <label className="text-xs font-bold text-emerald-700 block uppercase tracking-wider">Foto Giat (Max 10)</label>
@@ -280,30 +247,6 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
                         <div key={idx} className="relative aspect-square bg-slate-200 rounded-xl border border-slate-300 overflow-hidden group shadow-sm">
                           <img src={src} className="w-full h-full object-cover" alt="Preview"/>
                           <button type="button" onClick={() => removeFoto(idx)} className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center hover:bg-red-600 z-10 shadow-md transform hover:scale-110 transition-all"><XCircle size={14}/></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="flex justify-between items-center mb-4">
-                    <label className="text-xs font-bold text-amber-600 block uppercase tracking-wider">Lampiran PDF (Max 3)</label>
-                    <span className="text-[10px] font-bold bg-white text-slate-600 px-3 py-1 rounded-lg border border-slate-200 shadow-sm">{lampiranList.length} / 3</span>
-                  </div>
-                  {lampiranList.length < 3 && (
-                    <div className="relative cursor-pointer bg-white border-2 border-dashed border-slate-300 rounded-xl p-6 flex items-center justify-center gap-3 hover:border-amber-500 hover:bg-amber-50 transition-all shadow-sm">
-                      <input type="file" accept="application/pdf, image/*" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleLampiranUpload} />
-                      <FilePlus size={24} className="text-amber-500" />
-                      <span className="text-xs font-bold text-slate-600">Pilih / Tarik Dokumen</span>
-                    </div>
-                  )}
-                  {lampiranList.length > 0 && (
-                    <div className="space-y-3 mt-4">
-                      {lampiranList.map((lampiran, idx) => (
-                        <div key={idx} className="flex justify-between items-center bg-white border border-slate-200 p-3 rounded-lg shadow-sm group">
-                          <span className="text-xs font-medium text-slate-700 truncate pr-2 flex items-center gap-2"><FileText size={14} className="text-blue-600 flex-shrink-0"/> {lampiran.name}</span>
-                          <button type="button" onClick={() => removeLampiran(idx)} className="text-slate-400 hover:text-red-500 bg-slate-50 hover:bg-red-50 p-2 rounded-md transition-colors"><Trash2 size={16}/></button>
                         </div>
                       ))}
                     </div>

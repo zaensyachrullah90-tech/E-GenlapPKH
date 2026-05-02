@@ -9,35 +9,44 @@ export const THEME = {
 export const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyLxsYQZJG6NRZCs5O1tW306bXhFWT423evkaWhaUAa4DoT4zDDEwoeAIl1_EpRe3SKSg/exec";
 
 export const RHK_TARGETS = {
-  "RHK 1": 12,
-  "RHK 2": 180,
-  "RHK 3": 24,
-  "RHK 4": 24,
-  "RHK 5": 36,
-  "RHK 6": 100,
-  "RHK 7": 12,
-  "RHK 8": 24,
-  "RHK 9": 100
+  "RHK 1": 12, "RHK 2": 180, "RHK 3": 24, "RHK 4": 24, "RHK 5": 36, "RHK 6": 100, "RHK 7": 12, "RHK 8": 24, "RHK 9": 100
 };
 
-const JABATAN_LENGKAP = [
-  "Ketua TIM Provinsi (Katimprov)",
-  "Ketua TIM Kabupaten / Kota (Katimkabkot)",
-  "PENATA LAYANAN OPERASIONAL",
-  "PENGELOLA LAYANAN OP-DIII",
-  "OPERATOR LAYANAN OP-SMA2"
-];
-
 export const DEFAULT_MASTER_RHK_DATA = [
-  { id: "RHK 1", jabatan: JABATAN_LENGKAP, name: "Ketepatan sasaran dan pemanfaatan Bantuan Sosial Bersyarat...", renHar: [{id: "1.1", name: "Melakukan edukasi dan sosialisasi pencairan secara tunai dan non tunai"}, {id: "1.2", name: "Melaksanakan Supervisi Permasalahan Bantuan Sosial"}, {id: "1.3", name: "Melaksanakan Monitoring/Pemantauan Penyaluran Bantuan Sosial"}, {id: "1.4", name: "Melaksanakan Penelitian penyaluran bantuan Sosial"}, {id: "1.5", name: "Melaksanakan supervisi Kebijakan Bantuan Sosial Kepada ASN PPPK"}] },
-  { id: "RHK 2", jabatan: JABATAN_LENGKAP, name: "Ketepatan sasaran dan pemanfaatan Bantuan Sosial Bersyarat (P2K2)", renHar: [{id: "2.1", name: "Melaksanakan Pertemuan Peningkatan Kemampuan Keluarga (P2K2)"}, {id: "2.2", name: "Melakukan Supervisi pelaksanaan P2K2 kepada ASN PPPK"}] },
-  { id: "RHK 3", jabatan: JABATAN_LENGKAP, name: "Meningkatnya pemenuhan komitmen di bidang pendidikan, kesehatan, dll", renHar: [{id: "3.1", name: "Melaksanakan Verifikasi Komitmen Pendidikan,Kesehatan dan Kesejahteraan Sosial"}, {id: "3.2", name: "Melakukan pendampingan, mediasi, dan fasilitasi kepada KPM PKH"}, {id: "3.3", name: "Melaksanakan supervisi Verifikasi Komitmen Kepada ASN PPPK"}] },
-  { id: "RHK 4", jabatan: JABATAN_LENGKAP, name: "Meningkatnya kepuasan stakeholder terhadap layanan perlindungan", renHar: [{id: "4.1", name: "Melakukan usulan KPM Graduasi mandiri dan Pemberdayaan PPSE"}, {id: "4.2", name: "Melaksanakan supervisi Graduasi Kepada ASN PPPK"}] },
-  { id: "RHK 5", jabatan: JABATAN_LENGKAP, name: "Terlaksananya Verifikasi, Validasi dan Permutakhiran Data KPM", renHar: [{id: "5.1", name: "Melaksanakan Pemutakhiran Data"}, {id: "5.2", name: "Melaksanakan proses bisnis PKH yang meliputi verifikasi validasi calon penerima bantuan sosial"}, {id: "5.3", name: "Melaksanakan supervisi Verifikasi, Validasi dan pemutakhiran"}] },
-  { id: "RHK 6", jabatan: JABATAN_LENGKAP, name: "Terlaksananya kegiatan kasus adaptif (Respon kasus/kerentanan)", renHar: [{id: "6", name: "Melaksanakan Respon Kasus/Pengaduan/kebencanaan/Kerentanan"}] },
-  { id: "RHK 7", jabatan: JABATAN_LENGKAP, name: "Tersedianya Data Analisis Laporan Bulanan", renHar: [{id: "7.1", name: "Membuat laporan bulanan pelaksanaan PKH dan laporan lainnya"}] },
-  { id: "RHK 8", jabatan: JABATAN_LENGKAP, name: "Terlaksananya direktif pimpinan sesuai dengan penugasan", renHar: [{id: "8.1", name: "Melaksanakan Tindak Lanjut Hasil Pemeriksaan (TLHP)"}, {id: "8.2", name: "Melakukan sosialisasi kebijakan dan bisnis proses PKH"}, {id: "8.3", name: "Mengikuti Rapat Koordinasi, Sosialisasi Kebijakan"}, {id: "8.4", name: "Melakukan Pengawasan dan edukasi kepada Pendamping Sosial"}, {id: "8.5", name: "Tugas Lainnya (Penugasan lainnya program Kementrian Sosial)"}] },
-  { id: "RHK 9", jabatan: JABATAN_LENGKAP, name: "Terlaksananya Penyebaran Berita Baik Kemensos", renHar: [{id: "9.1", name: "Berperan aktif dalam memanfaatkan, menyebarkan Media Sosial"}] },
+  { id: "RHK 1", jabatan: ["Semua Jabatan"], name: "Penyaluran Bantuan Sosial", renHar: [
+      {id: "1.1", name: "Melakukan edukasi pencairan", jabatan: ["Pendamping Sosial", "Pendamping Sosial (S1/D4)", "Pendamping Sosial (D3)", "Pendamping Sosial (SMA)"]}, 
+      {id: "1.2", name: "Melaksanakan Supervisi Bantuan", jabatan: ["Koordinator Kabupaten (Katimkab)", "Koordinator Wilayah (Korwil)", "Koordinator Provinsi (Katimprov)"]}, 
+      {id: "1.3", name: "Melaksanakan Pemantauan", jabatan: ["Semua Jabatan"]}, 
+      {id: "1.4", name: "Melaksanakan Penelitian", jabatan: ["Administrator Database", "Operator Layanan Operasional"]}
+  ]},
+  { id: "RHK 2", jabatan: ["Semua Jabatan"], name: "Pertemuan Peningkatan Kemampuan Keluarga (P2K2)", renHar: [
+      {id: "2.1", name: "Melaksanakan P2K2", jabatan: ["Pendamping Sosial", "Pendamping Sosial (S1/D4)", "Pendamping Sosial (D3)", "Pendamping Sosial (SMA)"]}, 
+      {id: "2.2", name: "Supervisi Pelaksanaan P2K2", jabatan: ["Koordinator Kabupaten (Katimkab)", "Koordinator Wilayah (Korwil)"]}
+  ]},
+  { id: "RHK 3", jabatan: ["Semua Jabatan"], name: "Verifikasi Komitmen KPM", renHar: [
+      {id: "3.1", name: "Melakukan verifikasi komitmen fasilitas", jabatan: ["Semua Jabatan"]}
+  ]},
+  { id: "RHK 4", jabatan: ["Semua Jabatan"], name: "Pemutakhiran Data KPM", renHar: [
+      {id: "4.1", name: "Pemutakhiran data sosial KPM", jabatan: ["Pendamping Sosial", "Pendamping Sosial (S1/D4)", "Pendamping Sosial (D3)", "Pendamping Sosial (SMA)"]}, 
+      {id: "4.2", name: "Validasi calon penerima", jabatan: ["Operator Layanan Operasional", "Pengelola Layanan Operasional", "Administrator Database"]}
+  ]},
+  { id: "RHK 5", jabatan: ["Semua Jabatan"], name: "Rekonsiliasi Penyaluran", renHar: [
+      {id: "5.1", name: "Melaksanakan kegiatan rekonsiliasi", jabatan: ["Semua Jabatan"]}
+  ]},
+  { id: "RHK 6", jabatan: ["Semua Jabatan"], name: "Respon Kasus & Pengaduan", renHar: [
+      {id: "6.1", name: "Respon Kasus/Kerentanan", jabatan: ["Semua Jabatan"]}
+  ]},
+  { id: "RHK 7", jabatan: ["Semua Jabatan"], name: "Laporan Bulanan", renHar: [
+      {id: "7.1", name: "Membuat laporan pelaksanaan PKH", jabatan: ["Semua Jabatan"]}
+  ]},
+  { id: "RHK 8", jabatan: ["Semua Jabatan"], name: "Tugas Direktif & Koordinasi", renHar: [
+      {id: "8.1", name: "Tindak Lanjut Hasil Pemeriksaan (TLHP)", jabatan: ["Koordinator Kabupaten (Katimkab)", "Koordinator Provinsi (Katimprov)"]}, 
+      {id: "8.2", name: "Koordinasi dengan instansi", jabatan: ["Semua Jabatan"]}, 
+      {id: "8.3", name: "Tugas Lainnya Kementerian Sosial", jabatan: ["Semua Jabatan"]}
+  ]},
+  { id: "RHK 9", jabatan: ["Semua Jabatan"], name: "Penyebaran Berita Baik Kemensos", renHar: [
+      {id: "9.1", name: "Menyebarkan Media Sosial Kemensos", jabatan: ["Semua Jabatan"]}
+  ]},
 ];
 
 export const getBulanFolder = (dateString) => {
@@ -51,17 +60,36 @@ export const getFilteredRhk = (masterRhk, profile) => {
   const safeMasterRhk = Array.isArray(masterRhk) ? masterRhk : [];
   if(!profile?.jabatanPkh && !profile?.jabatanAsn) return safeMasterRhk;
 
-  const userJabatanPkh = String(profile?.jabatanPkh || "");
-  const userJabatanAsn = String(profile?.jabatanAsn || "");
+  const userPkh = String(profile?.jabatanPkh || "").toLowerCase();
+  const userAsn = String(profile?.jabatanAsn || "").toLowerCase();
 
   return safeMasterRhk.filter(rhk => {
-    if (!rhk.jabatan || rhk.jabatan === "Semua Jabatan") return true;
-    if (Array.isArray(rhk.jabatan)) {
-      return rhk.jabatan.includes("Semua Jabatan") || 
-             rhk.jabatan.includes(userJabatanPkh) || 
-             rhk.jabatan.includes(userJabatanAsn);
-    }
-    const strJabatan = String(rhk.jabatan);
-    return strJabatan.includes("Semua Jabatan") || strJabatan.includes(userJabatanPkh) || strJabatan.includes(userJabatanAsn);
+    if (!rhk.jabatan) return true;
+    const jabatanArray = Array.isArray(rhk.jabatan) ? rhk.jabatan : [rhk.jabatan];
+    return jabatanArray.some(jab => {
+       const j = String(jab).toLowerCase();
+       if (j.includes("semua jabatan")) return true;
+       if (userPkh && userPkh !== '-' && (j.includes(userPkh) || userPkh.includes(j))) return true;
+       if (userAsn && userAsn !== '-' && (j.includes(userAsn) || userAsn.includes(j))) return true;
+       return false;
+    });
+  });
+};
+
+export const getFilteredRenHar = (renHarArray, profile) => {
+  if (!Array.isArray(renHarArray)) return [];
+  const userPkh = String(profile?.jabatanPkh || "").toLowerCase();
+  const userAsn = String(profile?.jabatanAsn || "").toLowerCase();
+
+  return renHarArray.filter(ren => {
+    if (!ren.jabatan || ren.jabatan.length === 0) return true;
+    const jabatanArray = Array.isArray(ren.jabatan) ? ren.jabatan : [ren.jabatan];
+    return jabatanArray.some(jab => {
+       const j = String(jab).toLowerCase();
+       if (j.includes("semua jabatan")) return true;
+       if (userPkh && userPkh !== '-' && (j.includes(userPkh) || userPkh.includes(j))) return true;
+       if (userAsn && userAsn !== '-' && (j.includes(userAsn) || userAsn.includes(j))) return true;
+       return false;
+    });
   });
 };
