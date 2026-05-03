@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { CalendarDays, Plus, XCircle, Clock, Filter, Camera } from 'lucide-react';
 import { THEME, getFilteredRhk, getFilteredRenHar } from '../utils/constants';
+import { ref, update } from "firebase/database";
 
 export default function AgendaView({ profile, agendas, setAgendas, masterRhk, agendaFilter, setAgendaFilter, showToast, auth, db }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ tgl: '', jam: '', kegiatan: '', rhkId: '', renHarId: '', keterangan: '', foto: null });
 
+  // LOGIKA FILTER RHK & RENHAR (SMART FILTER GANDA)
   const availableRhks = getFilteredRhk(masterRhk, profile);
   const selectedRhkMaster = availableRhks.find(r => r?.id === form.rhkId);
   const availableRenHars = getFilteredRenHar(selectedRhkMaster?.renHar, profile);
@@ -30,7 +32,6 @@ export default function AgendaView({ profile, agendas, setAgendas, masterRhk, ag
     
     const user = auth?.currentUser;
     if (user && db) {
-        const { update, ref } = await import('firebase/database');
         await update(ref(db, `users/${user.uid}`), { agendas: updatedAgendas });
     }
     showToast("Agenda berhasil disimpan ke Cloud!", "success");
@@ -67,7 +68,7 @@ export default function AgendaView({ profile, agendas, setAgendas, masterRhk, ag
             </div>
             {form.rhkId && (
               <div className="animate-in fade-in slide-in-from-left-2">
-                <label className="text-[10px] font-bold text-slate-600 mb-1 block uppercase tracking-wider">Rencana Harian (Difilter Berdasarkan Jabatan)</label>
+                <label className="text-[10px] font-bold text-slate-600 mb-1 block uppercase tracking-wider">Rencana Kegiatan Harian (Difilter)</label>
                 <select className={THEME.glossyInput} value={form.renHarId} onChange={e => setForm({...form, renHarId: e.target.value})} required>
                   <option value="">-- Pilih Rencana Harian --</option>
                   {availableRenHars.map(h => <option key={h.id} value={h.id}>{h.id} - {h?.name?.substring(0, 50)}...</option>)}

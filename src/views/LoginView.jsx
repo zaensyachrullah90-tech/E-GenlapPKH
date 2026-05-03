@@ -2,22 +2,13 @@ import React, { useState } from 'react';
 import { LogIn, UserPlus, Key, Mail, Sparkles, BrainCircuit, Rocket, ShieldCheck, Camera } from 'lucide-react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { ref, set, get, child } from "firebase/database";
-
-// Tema dideklarasikan secara lokal di file ini agar terhindar dari error kompilasi (Module Not Found)
-const THEME = {
-  glossyCard: "bg-white border border-slate-200 shadow-sm rounded-2xl p-6 relative overflow-hidden",
-  glossyInput: "w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl p-3.5 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all duration-300 text-sm font-medium",
-  btnPrimary: "w-full bg-blue-700 hover:bg-blue-800 text-white font-black py-4 rounded-xl shadow-md active:scale-95 transition-all text-base flex justify-center items-center gap-2",
-  btnSecondary: "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-xl shadow-md active:scale-95 transition-all flex justify-center items-center gap-2",
-  btnAccent: "w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-3.5 rounded-xl shadow-md active:scale-95 transition-all flex justify-center items-center gap-2"
-};
+import { THEME } from '../utils/constants';
 
 export default function LoginView({ auth, db, setView, setRole, showLoading, showToast, profile, setProfile, setIsLoggedIn }) {
   const [loginMode, setLoginMode] = useState('login'); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // STATE PENDAFTARAN LENGKAP
   const [regData, setRegData] = useState({ gelarDepan: '', nama: '', gelarBelakang: '', nip: '', jabatanAsn: '', jabatanPkh: '', kabupaten: '', ttdBase64: '' });
 
   const handleTtdUpload = (e) => {
@@ -52,13 +43,10 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
     try {
         if (loginMode === 'login') {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            
             const dbRef = ref(db);
-            const snapshot = await get(child(dbRef, `users/${user.uid}`));
+            const snapshot = await get(child(dbRef, `users/${userCredential.user.uid}`));
             if (snapshot.exists()) {
-                const userData = snapshot.val();
-                setProfile({ ...profile, ...userData, emailTarget: email });
+                setProfile({ ...profile, ...snapshot.val(), emailTarget: email });
             } else {
                 setProfile({ ...profile, nama: 'SDM PKH', emailTarget: email });
             }
@@ -68,10 +56,8 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
             setView('dashboard');
 
         } else if (loginMode === 'register') {
-            // PROSES PENDAFTARAN (AUTH + REALTIME DB)
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            
             const fullName = `${regData.gelarDepan ? regData.gelarDepan + ' ' : ''}${regData.nama}${regData.gelarBelakang ? ', ' + regData.gelarBelakang : ''}`;
 
             const newProfileData = {
@@ -81,7 +67,7 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
                 jabatanAsn: regData.jabatanAsn || '-',
                 kabupaten: regData.kabupaten || '-',
                 email: email, 
-                tokens: 3, // MEMBERIKAN 3 TOKEN GRATIS UNTUK PENDAFTAR BARU
+                tokens: 3, 
                 ttdBase64: regData.ttdBase64 || '',
                 driveId: '',
                 sheetId: ''
@@ -90,7 +76,7 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
             await set(ref(db, `users/${user.uid}`), newProfileData);
             setProfile(newProfileData);
 
-            showToast("Pendaftaran berhasil! Menyimpan ke Database...", "success");
+            showToast("Pendaftaran berhasil! Akun dan profil telah tersimpan.", "success");
             setLoginMode('login');
             setPassword('');
 
@@ -118,15 +104,15 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
   );
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 relative z-50 overflow-hidden">
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 relative z-50 p-4">
       <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-400/20 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-400/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      <div className="max-w-6xl w-full h-[100vh] md:h-[90vh] md:rounded-[2.5rem] grid md:grid-cols-2 relative z-10 shadow-2xl bg-white overflow-hidden">
+      <div className="max-w-5xl w-full bg-white shadow-2xl rounded-3xl md:rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row relative z-10 min-h-[90vh]">
         
-        {/* KOLOM KIRI (BRANDING) - Pas 1 Layar Desktop */}
-        <div className="hidden md:flex flex-col justify-center bg-blue-900 p-10 relative overflow-hidden h-full">
-          <div className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-overlay" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')" }}></div>
+        {/* KIRI - BRANDING (Sticky) */}
+        <div className="hidden md:flex flex-col justify-center bg-blue-900 w-1/2 p-10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-overlay" style={{ backgroundImage: "url('[https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop](https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop)')" }}></div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
           
           <div className="relative z-10">
@@ -144,105 +130,102 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
           </div>
         </div>
 
-        {/* KOLOM KANAN (FORM LOGIN/DAFTAR) - Scrollable khusus area Form */}
-        <div className="flex flex-col h-full bg-white relative">
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 flex flex-col justify-center">
-              <div className="text-center mb-6 md:hidden relative z-10 mt-8">
-                 <div className="flex justify-center items-center mb-3 drop-shadow-xl relative w-20 h-20 mx-auto animate-pulse"><img src="/logo.png" alt="GL Logo" className="w-full h-full object-contain" /></div>
-                 <h2 className="text-2xl font-black text-blue-900 tracking-tight mt-2">E-GenLap PKH</h2>
-                 <p className="text-xs text-emerald-600 mt-1 font-bold">Sistem Pelaporan Cerdas SDM PKH</p>
-              </div>
+        {/* KANAN - SCROLLABLE FORMS */}
+        <div className="w-full md:w-1/2 h-full min-h-[90vh] max-h-[90vh] overflow-y-auto bg-white p-8 md:p-12 custom-scrollbar">
+            <div className="text-center mb-8 md:hidden relative z-10 mt-4">
+               <div className="flex justify-center items-center mb-3 drop-shadow-xl relative w-20 h-20 mx-auto animate-pulse"><img src="/logo.png" alt="GL Logo" className="w-full h-full object-contain" /></div>
+               <h2 className="text-2xl font-black text-blue-900 tracking-tight mt-2">E-GenLap PKH</h2>
+               <p className="text-xs text-emerald-600 mt-1 font-bold">Sistem Pelaporan Cerdas SDM PKH</p>
+            </div>
 
-              <div className="hidden md:flex justify-center mb-6"><img src="/logo.png" alt="GL Logo" className="w-16 h-16 object-contain drop-shadow-md" /></div>
+            <div className="hidden md:flex justify-center mb-6"><img src="/logo.png" alt="GL Logo" className="w-16 h-16 object-contain drop-shadow-md" /></div>
 
-              {/* FORM LOGIN */}
-              {loginMode === 'login' && (
-                <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-right-4 max-w-sm mx-auto w-full">
-                  <div className="text-center mb-6"><h3 className="text-xl font-black text-slate-800">Selamat Datang</h3><p className="text-xs text-slate-500 mt-1 font-medium">Masuk untuk melanjutkan ke sistem pelaporan</p></div>
-                  <div><label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">Email Terdaftar</label><input type="email" placeholder="contoh@pkh.go.id" className={THEME.glossyInput} value={email} onChange={e => setEmail(e.target.value)} required /></div>
-                  <div><label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">Password</label><input type="password" placeholder="••••••••" className={THEME.glossyInput} value={password} onChange={e => setPassword(e.target.value)} required /></div>
-                  <div className="pt-2"><button type="submit" className={THEME.btnPrimary}><LogIn size={18} /> Masuk ke E-GenLap</button></div>
-                  <div className="flex justify-between items-center text-[11px] mt-4 pt-4 border-t border-slate-100">
-                    <button type="button" onClick={() => setLoginMode('forgot')} className="text-slate-500 hover:text-blue-700 transition-colors font-semibold">Lupa Password?</button>
-                    <button type="button" onClick={() => setLoginMode('register')} className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-lg"><UserPlus size={14}/> Daftar Baru</button>
-                  </div>
-                </form>
-              )}
+            {/* FORM LOGIN */}
+            {loginMode === 'login' && (
+              <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-right-4 max-w-sm mx-auto">
+                <div className="text-center mb-6"><h3 className="text-xl font-black text-slate-800">Selamat Datang</h3><p className="text-xs text-slate-500 mt-1 font-medium">Masuk untuk melanjutkan ke sistem pelaporan</p></div>
+                <div><label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">Email Terdaftar</label><input type="email" placeholder="contoh@pkh.go.id" className={THEME.glossyInput} value={email} onChange={e => setEmail(e.target.value)} required /></div>
+                <div><label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">Password</label><input type="password" placeholder="••••••••" className={THEME.glossyInput} value={password} onChange={e => setPassword(e.target.value)} required /></div>
+                <div className="pt-2"><button type="submit" className={THEME.btnPrimary}><LogIn size={18} /> Masuk ke E-GenLap</button></div>
+                <div className="flex justify-between items-center text-[11px] mt-4 pt-4 border-t border-slate-100">
+                  <button type="button" onClick={() => setLoginMode('forgot')} className="text-slate-500 hover:text-blue-700 transition-colors font-semibold">Lupa Password?</button>
+                  <button type="button" onClick={() => setLoginMode('register')} className="text-emerald-600 font-bold hover:text-emerald-700 transition-colors flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-lg"><UserPlus size={14}/> Daftar Baru</button>
+                </div>
+              </form>
+            )}
 
-              {/* FORM REGISTER */}
-              {loginMode === 'register' && (
-                <form onSubmit={handleSubmit} className="space-y-3 animate-in slide-in-from-left-4 max-w-md mx-auto w-full">
-                  <div className="text-center mb-4 pb-2 border-b border-slate-100">
-                      <div className="inline-flex items-center justify-center w-8 h-8 bg-emerald-100 rounded-full mb-2 text-emerald-600"><UserPlus size={16}/></div>
-                      <h3 className="text-base font-black text-slate-800">Daftar Akun Baru</h3>
-                      <p className="text-[10px] text-slate-500 font-medium">Dapatkan 3 Token Awal gratis.</p>
-                  </div>
-                  
-                  <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-3"><input type="text" placeholder="Gelar Dpn" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, gelarDepan: e.target.value})} /></div>
-                      <div className="col-span-6"><input type="text" placeholder="Nama Lengkap *" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, nama: e.target.value})} required /></div>
-                      <div className="col-span-3"><input type="text" placeholder="Gelar Blk" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, gelarBelakang: e.target.value})} /></div>
-                  </div>
+            {/* FORM REGISTER */}
+            {loginMode === 'register' && (
+              <form onSubmit={handleSubmit} className="space-y-3 animate-in slide-in-from-left-4 max-w-md mx-auto">
+                <div className="text-center mb-4 pb-2 border-b border-slate-100">
+                    <div className="inline-flex items-center justify-center w-8 h-8 bg-emerald-100 rounded-full mb-2 text-emerald-600"><UserPlus size={16}/></div>
+                    <h3 className="text-base font-black text-slate-800">Daftar Akun Baru</h3>
+                    <p className="text-[10px] text-slate-500 font-medium">Dapatkan 3 Token Awal gratis.</p>
+                </div>
+                
+                <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-3"><input type="text" placeholder="Gelar Dpn" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, gelarDepan: e.target.value})} /></div>
+                    <div className="col-span-6"><input type="text" placeholder="Nama Lengkap *" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, nama: e.target.value})} required /></div>
+                    <div className="col-span-3"><input type="text" placeholder="Gelar Blk" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, gelarBelakang: e.target.value})} /></div>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="number" placeholder="NIP (Kosong Jika Non-ASN)" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, nip: e.target.value})} />
-                    <input type="text" placeholder="Kabupaten Tugas *" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, kabupaten: e.target.value})} required />
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="text" placeholder="NIP (Kosong Jika Non-ASN)" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, nip: e.target.value})} />
+                  <input type="text" placeholder="Kabupaten Tugas *" className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, kabupaten: e.target.value})} required />
+                </div>
 
-                  <div>
-                    <select className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, jabatanPkh: e.target.value})} required>
-                      <option value="">-- Pilih Jabatan PKH --</option>
-                      <option value="Koordinator Wilayah (Korwil)">Koordinator Wilayah (Korwil)</option>
-                      <option value="Koordinator Provinsi (Katimprov)">Koordinator Provinsi (Katimprov)</option>
-                      <option value="Koordinator Kabupaten (Katimkab)">Koordinator Kabupaten (Katimkab)</option>
-                      <option value="Pendamping Sosial (S1/D4)">Pendamping Sosial (S1/D4)</option>
-                      <option value="Pendamping Sosial (D3)">Pendamping Sosial (D3)</option>
-                      <option value="Pendamping Sosial (SMA)">Pendamping Sosial (SMA)</option>
-                      <option value="Administrator Database">Administrator Database</option>
-                    </select>
-                  </div>
+                <div>
+                  <select className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, jabatanPkh: e.target.value})} required>
+                    <option value="">-- Pilih Jabatan PKH --</option>
+                    <option value="Koordinator Wilayah (Korwil)">Koordinator Wilayah (Korwil)</option>
+                    <option value="Koordinator Provinsi (Katimprov)">Koordinator Provinsi (Katimprov)</option>
+                    <option value="Koordinator Kabupaten (Katimkab)">Koordinator Kabupaten (Katimkab)</option>
+                    <option value="Pendamping Sosial (S1/D4)">Pendamping Sosial (S1/D4)</option>
+                    <option value="Pendamping Sosial (D3)">Pendamping Sosial (D3)</option>
+                    <option value="Pendamping Sosial (SMA)">Pendamping Sosial (SMA)</option>
+                    <option value="Administrator Database">Administrator Database</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <select className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, jabatanAsn: e.target.value})} required>
-                      <option value="">-- Pilih Jabatan ASN --</option>
-                      <option value="Penata Layanan Operasional">Penata Layanan Operasional</option>
-                      <option value="Pengelola Layanan Operasional">Pengelola Layanan Operasional</option>
-                      <option value="Operator Layanan Operasional">Operator Layanan Operasional</option>
-                    </select>
-                  </div>
+                <div>
+                  <select className={`${THEME.glossyInput} text-[10px] p-2.5`} onChange={e => setRegData({...regData, jabatanAsn: e.target.value})} required>
+                    <option value="">-- Pilih Jabatan ASN --</option>
+                    <option value="Penata Layanan Operasional">Penata Layanan Operasional</option>
+                    <option value="Pengelola Layanan Operasional">Pengelola Layanan Operasional</option>
+                    <option value="Operator Layanan Operasional">Operator Layanan Operasional</option>
+                  </select>
+                </div>
 
-                  {/* Upload TTD saat Registrasi */}
-                  <div className="bg-slate-50 border border-dashed border-blue-300 rounded-xl p-2 flex items-center justify-between text-slate-500 relative hover:bg-blue-50 transition-colors">
-                     <input type="file" accept="image/png" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleTtdUpload} required />
-                     <div className="flex items-center gap-2 pl-2">
-                       <Camera size={16} className="text-blue-500" />
-                       <span className="text-[9px] font-bold text-slate-600">Upload TTD (PNG) *</span>
-                     </div>
-                     {regData.ttdBase64 ? (
-                        <div className="w-12 h-6 mr-2"><img src={regData.ttdBase64} alt="TTD" className="w-full h-full object-contain" /></div>
-                     ) : ( <span className="text-[9px] text-red-400 pr-2">Belum Upload</span> )}
-                  </div>
+                <div className="bg-slate-50 border border-dashed border-blue-300 rounded-xl p-2 flex items-center justify-between text-slate-500 relative hover:bg-blue-50 transition-colors">
+                   <input type="file" accept="image/png" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleTtdUpload} required />
+                   <div className="flex items-center gap-2 pl-2">
+                     <Camera size={16} className="text-blue-500" />
+                     <span className="text-[9px] font-bold text-slate-600">Upload TTD (PNG) *</span>
+                   </div>
+                   {regData.ttdBase64 ? (
+                      <div className="w-12 h-6 mr-2"><img src={regData.ttdBase64} alt="TTD" className="w-full h-full object-contain" /></div>
+                   ) : ( <span className="text-[9px] text-red-400 pr-2">Belum Upload</span> )}
+                </div>
 
-                  <div><input type="email" placeholder="Email Aktif *" className={`${THEME.glossyInput} text-[10px] p-2.5`} value={email} onChange={e => setEmail(e.target.value)} required /></div>
-                  <div><input type="password" placeholder="Buat Password (Min 6 Karakter) *" className={`${THEME.glossyInput} text-[10px] p-2.5`} value={password} onChange={e => setPassword(e.target.value)} required minLength="6" /></div>
-                  
-                  <div className="pt-2">
-                      <button type="submit" className={THEME.btnSecondary}>Daftar & Klaim Token</button>
-                      <button type="button" onClick={() => setLoginMode('login')} className="w-full text-center text-[10px] text-slate-500 hover:text-blue-700 transition-colors font-semibold mt-3 flex items-center justify-center gap-1"><LogIn size={12}/> Kembali ke Login</button>
-                  </div>
-                </form>
-              )}
+                <div><input type="email" placeholder="Email Aktif *" className={`${THEME.glossyInput} text-[10px] p-2.5`} value={email} onChange={e => setEmail(e.target.value)} required /></div>
+                <div><input type="password" placeholder="Buat Password (Min 6 Karakter) *" className={`${THEME.glossyInput} text-[10px] p-2.5`} value={password} onChange={e => setPassword(e.target.value)} required minLength="6" /></div>
+                
+                <div className="pt-2">
+                    <button type="submit" className={THEME.btnSecondary}>Daftar & Klaim Token</button>
+                    <button type="button" onClick={() => setLoginMode('login')} className="w-full text-center text-[10px] text-slate-500 hover:text-blue-700 transition-colors font-semibold mt-3 flex items-center justify-center gap-1"><LogIn size={12}/> Kembali ke Login</button>
+                </div>
+              </form>
+            )}
 
-              {/* FORM FORGOT */}
-              {loginMode === 'forgot' && (
-                <form onSubmit={handleSubmit} className="space-y-4 animate-in zoom-in-95 max-w-sm mx-auto w-full">
-                  <div className="text-center mb-6"><div className="inline-flex items-center justify-center w-12 h-12 bg-amber-100 rounded-full mb-3 text-amber-600"><Key size={24}/></div><h3 className="text-xl font-black text-slate-800">Reset Password</h3><p className="text-xs text-slate-500 mt-2 px-4 leading-relaxed font-medium">Masukkan email terdaftar Anda. Kami akan mengirimkan tautan pemulihan.</p></div>
-                  <div><input type="email" placeholder="Email Terdaftar" className={THEME.glossyInput} value={email} onChange={e => setEmail(e.target.value)} required /></div>
-                  <div className="pt-2"><button type="submit" className={THEME.btnAccent}><Mail size={16}/> Kirim Link Reset</button></div>
-                  <div className="text-center mt-6 pt-4 border-t border-slate-100"><button type="button" onClick={() => setLoginMode('login')} className="text-xs text-slate-500 hover:text-blue-700 transition-colors font-semibold">Kembali ke halaman Login</button></div>
-                </form>
-              )}
-          </div>
+            {/* FORM FORGOT */}
+            {loginMode === 'forgot' && (
+              <form onSubmit={handleSubmit} className="space-y-4 animate-in zoom-in-95 max-w-sm mx-auto w-full">
+                <div className="text-center mb-6"><div className="inline-flex items-center justify-center w-12 h-12 bg-amber-100 rounded-full mb-3 text-amber-600"><Key size={24}/></div><h3 className="text-xl font-black text-slate-800">Reset Password</h3><p className="text-xs text-slate-500 mt-2 px-4 leading-relaxed font-medium">Masukkan email terdaftar Anda. Kami akan mengirimkan tautan pemulihan.</p></div>
+                <div><input type="email" placeholder="Email Terdaftar" className={THEME.glossyInput} value={email} onChange={e => setEmail(e.target.value)} required /></div>
+                <div className="pt-2"><button type="submit" className={THEME.btnAccent}><Mail size={16}/> Kirim Link Reset</button></div>
+                <div className="text-center mt-6 pt-4 border-t border-slate-100"><button type="button" onClick={() => setLoginMode('login')} className="text-xs text-slate-500 hover:text-blue-700 transition-colors font-semibold">Kembali ke halaman Login</button></div>
+              </form>
+            )}
         </div>
       </div>
     </div>
