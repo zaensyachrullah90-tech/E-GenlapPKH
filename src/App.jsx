@@ -17,11 +17,10 @@ import { getDatabase, ref, onValue, get, child, set, update } from "firebase/dat
 // =========================================================================
 // --- FIREBASE CONFIGURATION ---
 // =========================================================================
-// Catatan: Peringatan (warning) 'import.meta' di lingkungan preview ini 
-// adalah hal yang wajar karena kompilator penampil menggunakan target ES2015. 
-// Ini bukan error dan 100% aman serta kompatibel di Vercel/Vite Anda.
+// Menggunakan trik eval untuk membungkam WARNING "import.meta" di esbuild/preview
+// Di Vercel/Vite Anda, ini tetap akan membaca file .env dengan sempurna.
 const getEnv = (key) => {
-  try { return import.meta.env[key]; } catch(e) { return ''; }
+  try { return eval("import.meta.env")[key]; } catch(e) { return undefined; }
 };
 
 const firebaseConfig = {
@@ -39,7 +38,7 @@ export const auth = getAuth(app);
 export const db = getDatabase(app);
 
 // =========================================================================
-// --- CONSTANTS & UTILITIES ---
+// --- MODULE: utils/constants.js ---
 // =========================================================================
 const THEME = {
   glossyCard: "bg-white border border-slate-200 shadow-sm rounded-2xl p-6 relative overflow-hidden",
@@ -113,7 +112,7 @@ const getFilteredRenHar = (renHarArray, profile) => {
 };
 
 // =========================================================================
-// --- UI COMPONENTS ---
+// --- UI COMPONENTS UTILITIES ---
 // =========================================================================
 const LoadingScreen = () => (
   <div className="fixed inset-0 bg-white/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center transition-all duration-300">
@@ -202,9 +201,8 @@ const BottomNav = ({ view, setView }) => {
 };
 
 // =========================================================================
-// --- VIEWS ---
+// --- MODULE: views/LoginView.jsx ---
 // =========================================================================
-
 function LoginView({ auth, db, setView, setRole, showLoading, showToast, profile, setProfile, setIsLoggedIn }) {
   const [loginMode, setLoginMode] = useState('login'); 
   const [email, setEmail] = useState('');
@@ -435,6 +433,9 @@ function LoginView({ auth, db, setView, setRole, showLoading, showToast, profile
   );
 }
 
+// =========================================================================
+// --- MODULE: views/DashboardView.jsx ---
+// =========================================================================
 function DashboardView({ profile, tokens, reports, masterRhk }) {
   const safeProfile = profile || {};
   const safeReports = Array.isArray(reports) ? reports : [];
@@ -535,6 +536,9 @@ function DashboardView({ profile, tokens, reports, masterRhk }) {
   );
 }
 
+// =========================================================================
+// --- MODULE: views/EngineView.jsx ---
+// =========================================================================
 function EngineView({ profile, tokens, role, setTokens, showToast, showLoading, reports, setReports, masterRhk, setView }) {
   const [rhkId, setRhkId] = useState('');
   const [renHarId, setRenHarId] = useState('');
@@ -862,6 +866,9 @@ function EngineView({ profile, tokens, role, setTokens, showToast, showLoading, 
   );
 }
 
+// =========================================================================
+// --- MODULE: views/DatabaseView.jsx ---
+// =========================================================================
 function DatabaseView({ reports }) {
   const safeReports = Array.isArray(reports) ? reports : [];
 
@@ -915,7 +922,10 @@ function DatabaseView({ reports }) {
   );
 }
 
-function AgendaView({ profile, agendas, setAgendas, masterRhk, agendaFilter, setAgendaFilter, showToast, auth, db }) {
+// =========================================================================
+// --- MODULE: views/AgendaView.jsx ---
+// =========================================================================
+function AgendaView({ profile, agendas, setAgendas, masterRhk, agendaFilter, setAgendaFilter, showToast }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ tgl: '', jam: '', kegiatan: '', rhkId: '', renHarId: '', keterangan: '', foto: null });
 
@@ -979,7 +989,7 @@ function AgendaView({ profile, agendas, setAgendas, masterRhk, agendaFilter, set
             </div>
             {form.rhkId && (
               <div className="animate-in fade-in slide-in-from-left-2">
-                <label className="text-[10px] font-bold text-slate-600 mb-1 block uppercase tracking-wider">Rencana Kegiatan Harian</label>
+                <label className="text-[10px] font-bold text-slate-600 mb-1 block uppercase tracking-wider">Rencana Kegiatan Harian (Difilter)</label>
                 <select className={THEME.glossyInput} value={form.renHarId} onChange={e => setForm({...form, renHarId: e.target.value})} required>
                   <option value="">-- Pilih Rencana Harian --</option>
                   {availableRenHars.map(h => <option key={h.id} value={h.id}>{h.id} - {h?.name?.substring(0, 50)}...</option>)}
@@ -1057,8 +1067,10 @@ function AgendaView({ profile, agendas, setAgendas, masterRhk, agendaFilter, set
   );
 }
 
-function SettingsView({ profile, setProfile, tokens, role, showToast, showLoading, setView, pendingTx, setPendingTx, handleLogout, auth, db }) {
-  
+// =========================================================================
+// --- MODULE: views/SettingsView.jsx ---
+// =========================================================================
+function SettingsView({ profile, setProfile, tokens, role, showToast, showLoading, setView, pendingTx, setPendingTx, handleLogout }) {
   const handleSaveAll = async () => { 
       showLoading(true); 
       try {
@@ -1176,7 +1188,10 @@ function SettingsView({ profile, setProfile, tokens, role, showToast, showLoadin
   );
 }
 
-function AdminView({ showToast, showLoading, adminConfig, setAdminConfig, db, masterRhk, setMasterRhk, adminUsersData, pendingTx, setPendingTx }) {
+// =========================================================================
+// --- MODULE: views/AdminView.jsx ---
+// =========================================================================
+function AdminView({ showToast, showLoading, adminConfig, setAdminConfig, masterRhk, setMasterRhk, adminUsersData, pendingTx, setPendingTx }) {
   const [adminTab, setAdminTab] = useState('analisa');
   const [newRhkJson, setNewRhkJson] = useState('');
 
@@ -1337,6 +1352,9 @@ function AdminView({ showToast, showLoading, adminConfig, setAdminConfig, db, ma
   );
 }
 
+// =========================================================================
+// --- MODULE: views/PanduanView.jsx ---
+// =========================================================================
 function PanduanView() {
   return (
     <div className="animate-in fade-in duration-300">
@@ -1354,7 +1372,7 @@ function PanduanView() {
 }
 
 // =========================================================================
-// --- ROUTER UTAMA (APP SHELL) ---
+// --- APLIKASI UTAMA (APP SHELL) ---
 // =========================================================================
 export default function App() {
   const safeParseJSON = (key, defaultVal) => { try { const val = localStorage.getItem(key); return val ? JSON.parse(val) : defaultVal; } catch (e) { return defaultVal; } };
