@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart3, CheckCircle2, XCircle, ChevronDown, CheckCircle, Database } from 'lucide-react';
-import { THEME, RHK_TARGETS, getFilteredRhk, getBulanFolder } from '../utils/constants';
+import { THEME, RHK_TARGETS, getFilteredRhk, getBulanFolder } from '../utils/constants.js';
 
 export default function DashboardView({ profile, tokens, reports, masterRhk }) {
   const safeProfile = profile || {};

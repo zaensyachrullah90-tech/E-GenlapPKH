@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { LogIn, UserPlus, Key, Mail, Sparkles, BrainCircuit, Rocket, ShieldCheck, Camera } from 'lucide-react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { ref, set, get, child } from "firebase/database";
-import { THEME } from '../utils/constants';
+import { THEME } from '../utils/constants.js';
 
 export default function LoginView({ auth, db, setView, setRole, showLoading, showToast, profile, setProfile, setIsLoggedIn }) {
   const [loginMode, setLoginMode] = useState('login'); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
   const [regData, setRegData] = useState({ gelarDepan: '', nama: '', gelarBelakang: '', nip: '', jabatanAsn: '', jabatanPkh: '', kabupaten: '', ttdBase64: '' });
 
   const handleTtdUpload = (e) => {
@@ -43,21 +42,27 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
     try {
         if (loginMode === 'login') {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
             const dbRef = ref(db);
-            const snapshot = await get(child(dbRef, `users/${userCredential.user.uid}`));
+            const snapshot = await get(child(dbRef, `users/${user.uid}`));
             if (snapshot.exists()) {
-                setProfile({ ...profile, ...snapshot.val(), emailTarget: email });
+                const userData = snapshot.val();
+                setProfile({ ...profile, ...userData, emailTarget: email });
             } else {
                 setProfile({ ...profile, nama: 'SDM PKH', emailTarget: email });
             }
+            
             setRole('user');
             showToast("Login Berhasil!", "success");
             setIsLoggedIn(true);
             setView('dashboard');
 
         } else if (loginMode === 'register') {
+            // PROSES PENDAFTARAN KOMPLIT KE DATABASE FIREBASE
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+            
             const fullName = `${regData.gelarDepan ? regData.gelarDepan + ' ' : ''}${regData.nama}${regData.gelarBelakang ? ', ' + regData.gelarBelakang : ''}`;
 
             const newProfileData = {
@@ -67,7 +72,7 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
                 jabatanAsn: regData.jabatanAsn || '-',
                 kabupaten: regData.kabupaten || '-',
                 email: email, 
-                tokens: 3, 
+                tokens: 3, // OTOMATIS DAPAT 3 TOKEN
                 ttdBase64: regData.ttdBase64 || '',
                 driveId: '',
                 sheetId: ''
@@ -76,7 +81,7 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
             await set(ref(db, `users/${user.uid}`), newProfileData);
             setProfile(newProfileData);
 
-            showToast("Pendaftaran berhasil! Akun dan profil telah tersimpan.", "success");
+            showToast("Pendaftaran berhasil! Akun dan profil telah tersimpan ke Database.", "success");
             setLoginMode('login');
             setPassword('');
 
@@ -104,13 +109,13 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
   );
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 relative z-50 p-4">
+    <div className="h-screen w-full flex items-center justify-center bg-slate-50 relative z-50 p-4 md:p-8 overflow-hidden">
       <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-400/20 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-400/20 rounded-full blur-[120px] pointer-events-none"></div>
 
-      <div className="max-w-5xl w-full bg-white shadow-2xl rounded-3xl md:rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row relative z-10 min-h-[90vh]">
+      <div className="max-w-6xl w-full h-[95vh] bg-white shadow-2xl rounded-3xl md:rounded-[2.5rem] flex flex-col md:flex-row relative z-10 overflow-hidden">
         
-        {/* KIRI - BRANDING (Sticky) */}
+        {/* KOLOM KIRI (TIDAK SCROLL) */}
         <div className="hidden md:flex flex-col justify-center bg-blue-900 w-1/2 p-10 relative overflow-hidden">
           <div className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-overlay" style={{ backgroundImage: "url('[https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop](https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop)')" }}></div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
@@ -130,9 +135,9 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
           </div>
         </div>
 
-        {/* KANAN - SCROLLABLE FORMS */}
-        <div className="w-full md:w-1/2 h-full min-h-[90vh] max-h-[90vh] overflow-y-auto bg-white p-8 md:p-12 custom-scrollbar">
-            <div className="text-center mb-8 md:hidden relative z-10 mt-4">
+        {/* KOLOM KANAN (FORM SCROLL) */}
+        <div className="w-full md:w-1/2 h-full overflow-y-auto custom-scrollbar p-6 md:p-12 relative">
+            <div className="text-center mb-6 md:hidden relative z-10 mt-4">
                <div className="flex justify-center items-center mb-3 drop-shadow-xl relative w-20 h-20 mx-auto animate-pulse"><img src="/logo.png" alt="GL Logo" className="w-full h-full object-contain" /></div>
                <h2 className="text-2xl font-black text-blue-900 tracking-tight mt-2">E-GenLap PKH</h2>
                <p className="text-xs text-emerald-600 mt-1 font-bold">Sistem Pelaporan Cerdas SDM PKH</p>
@@ -140,9 +145,8 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
 
             <div className="hidden md:flex justify-center mb-6"><img src="/logo.png" alt="GL Logo" className="w-16 h-16 object-contain drop-shadow-md" /></div>
 
-            {/* FORM LOGIN */}
             {loginMode === 'login' && (
-              <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-right-4 max-w-sm mx-auto">
+              <form onSubmit={handleSubmit} className="space-y-4 animate-in slide-in-from-right-4 max-w-sm mx-auto w-full">
                 <div className="text-center mb-6"><h3 className="text-xl font-black text-slate-800">Selamat Datang</h3><p className="text-xs text-slate-500 mt-1 font-medium">Masuk untuk melanjutkan ke sistem pelaporan</p></div>
                 <div><label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">Email Terdaftar</label><input type="email" placeholder="contoh@pkh.go.id" className={THEME.glossyInput} value={email} onChange={e => setEmail(e.target.value)} required /></div>
                 <div><label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">Password</label><input type="password" placeholder="••••••••" className={THEME.glossyInput} value={password} onChange={e => setPassword(e.target.value)} required /></div>
@@ -154,9 +158,8 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
               </form>
             )}
 
-            {/* FORM REGISTER */}
             {loginMode === 'register' && (
-              <form onSubmit={handleSubmit} className="space-y-3 animate-in slide-in-from-left-4 max-w-md mx-auto">
+              <form onSubmit={handleSubmit} className="space-y-3 animate-in slide-in-from-left-4 max-w-md mx-auto w-full">
                 <div className="text-center mb-4 pb-2 border-b border-slate-100">
                     <div className="inline-flex items-center justify-center w-8 h-8 bg-emerald-100 rounded-full mb-2 text-emerald-600"><UserPlus size={16}/></div>
                     <h3 className="text-base font-black text-slate-800">Daftar Akun Baru</h3>
@@ -217,7 +220,6 @@ export default function LoginView({ auth, db, setView, setRole, showLoading, sho
               </form>
             )}
 
-            {/* FORM FORGOT */}
             {loginMode === 'forgot' && (
               <form onSubmit={handleSubmit} className="space-y-4 animate-in zoom-in-95 max-w-sm mx-auto w-full">
                 <div className="text-center mb-6"><div className="inline-flex items-center justify-center w-12 h-12 bg-amber-100 rounded-full mb-3 text-amber-600"><Key size={24}/></div><h3 className="text-xl font-black text-slate-800">Reset Password</h3><p className="text-xs text-slate-500 mt-2 px-4 leading-relaxed font-medium">Masukkan email terdaftar Anda. Kami akan mengirimkan tautan pemulihan.</p></div>
