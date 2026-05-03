@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, Database, Wand2, CalendarDays, Settings, ShieldAlert, BookOpen, 
-  CheckCircle2, XCircle, LogOut 
+  CheckCircle2, XCircle, LogOut, Zap, User 
 } from 'lucide-react';
 import { initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
