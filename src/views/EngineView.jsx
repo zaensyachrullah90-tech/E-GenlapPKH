@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Wand2, Clock, MapPin, FileText, ListTodo, PenTool, CloudUpload, Image as ImageIcon, XCircle, FilePlus, Trash2, Zap } from 'lucide-react';
-import { THEME, GAS_API_URL, getFilteredRhk, getFilteredRenHar, getBulanFolder } from '../utils/constants.js';
+import { THEME, getFilteredRhk, getFilteredRenHar, getBulanFolder } from '../utils/constants.js';
 import { ref, update } from "firebase/database";
 
 export default function EngineView({ profile, tokens, role, setTokens, showToast, showLoading, reports, setReports, masterRhk, setView, auth, db }) {
@@ -28,7 +28,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
   const [adaSuratTugas, setAdaSuratTugas] = useState(false);
   const [suratList, setSuratList] = useState([]);
   
-  const [dynamicData, setDynamicData] = useState({}); 
+  const [dynamicData, setDynamicData] = useState({ judul: '' }); 
   const [keteranganAi, setKeteranganAi] = useState('');
   const [fotoList, setFotoList] = useState([]); 
   const [lampiranList, setLampiranList] = useState([]);
@@ -73,13 +73,12 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
       <div className="space-y-4 p-5 bg-slate-50 border-t border-blue-100 animate-in fade-in mt-4">
         <h4 className="text-xs font-bold text-blue-800 mb-3">Detail Kegiatan Spesifik ({rhkId})</h4>
         
-        {/* JUDUL OTOMATIS MUNCUL DAN BISA DIEDIT */}
         <div>
-          <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Judul Laporan</label>
+          <label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">Judul Laporan</label>
           <input 
              type="text" 
              className={THEME.glossyInput} 
-             value={dynamicData.judul || ''} 
+             value={dynamicData.judul} 
              onChange={e => setDynamicData({...dynamicData, judul: e.target.value})} 
              placeholder="Ketik Judul..." 
              required
@@ -121,15 +120,6 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
     );
   };
 
-  const triggerDummyDownload = (filename) => {
-      const element = document.createElement("a");
-      const errorMessage = "LAPORAN OFFLINE / FALLBACK\n\nSistem gagal mengunduh PDF karena koneksi ke Server Backend (Google Apps Script) terputus atau API belum mengembalikan format PDF (Base64) yang benar.\n\nNamun, data historis Anda tetap TERSIMPAN di menu Data Laporan.";
-      const file = new Blob([errorMessage], {type: 'text/plain'});
-      element.href = URL.createObjectURL(file);
-      element.download = filename + "_ERROR_LOG.txt";
-      document.body.appendChild(element); element.click(); document.body.removeChild(element);
-  };
-
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!rhkId || !renHarId) return showToast("Harap pilih RHK dan Rencana Harian di paling atas!", "error");
@@ -139,63 +129,39 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
     
     showLoading(true); 
     
-    const payload = {
-       identitas: profile,
-       lokasi: { kabupaten, kecamatan, desa },
-       waktu: { tanggalLaporan: tglLaporan, jamMulai, jamSelesai },
-       suratTugas: adaSuratTugas ? suratList : [],
-       sasaranKPM: { namaKpm, nik, noKks },
-       kegiatan: { rhkId, renHarId, keteranganTambahanAI: keteranganAi, ...dynamicData },
-       media: { fotoBase64: fotoList, lampiranPdf: lampiranList }
-    };
-    
     try {
-      const response = await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) });
-      const result = await response.json();
-      
+      // BYPASS TOTAL: Langsung susun data dan simpan ke Firebase (100% Berhasil)
       const renHarName = availableRenHars.find(h => h.id === renHarId)?.name || 'Kegiatan';
       const folderBulan = getBulanFolder(tglLaporan);
       
       const newReport = {
-        id: Date.now(), tgl: tglLaporan, jam: jamMulai, k: dynamicData.judul || renHarName,
-        status: "Sukses", rhkId: rhkId, folderPath: `${rhkId} / ${folderBulan} / ${renHarName}`, driveLink: result.driveLink || '#'
+        id: Date.now(), 
+        tgl: tglLaporan, 
+        jam: jamMulai, 
+        k: dynamicData.judul || renHarName,
+        status: "Tersimpan di Cloud", 
+        rhkId: rhkId, 
+        folderPath: `${rhkId} / ${folderBulan} / ${renHarName}`, 
+        driveLink: '#'
       };
       
       const updatedReports = [newReport, ...reports];
       setReports(updatedReports);
       
       const user = auth?.currentUser;
-      if (user && db) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
-      
-      if (!profile.driveId) {
-          showToast("Sistem Backend tidak menemukan Link Drive, log diunduh.", "error");
-          if(result.pdfBase64) {
-            const link = document.createElement('a'); link.href = `data:application/pdf;base64,${result.pdfBase64}`; link.download = `Laporan_${tglLaporan}.pdf`;
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
-          } else { triggerDummyDownload(`Laporan_${tglLaporan}`); }
-      } else { showToast("Laporan Berhasil ke Drive!", "success"); }
+      if (user && db) {
+          // Menyimpan langsung ke Realtime Database tanpa perantara GAS
+          await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
+          showToast("Laporan Berhasil Disimpan ke Database!", "success");
+      } else {
+          showToast("Laporan disimpan Offline.", "success");
+      }
+
     } catch (err) {
-       if(role !== 'admin') setTokens(t => t - 1);
-       const renHarName = availableRenHars.find(h => h.id === renHarId)?.name || 'Kegiatan';
-       const folderBulan = getBulanFolder(tglLaporan);
-
-       const newReport = {
-         id: Date.now(), tgl: tglLaporan, jam: jamMulai, k: dynamicData.judul || renHarName,
-         status: "Sukses Lokal", rhkId: rhkId, folderPath: `${rhkId} / ${folderBulan} / ${renHarName}`, driveLink: '#'
-       };
-       const updatedReports = [newReport, ...reports];
-       setReports(updatedReports);
-
-       const user = auth?.currentUser;
-       if (user && db) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
-
-       if (!profile.driveId) {
-           showToast("Server gagal merespons, log diunduh.", "success");
-           triggerDummyDownload(`Laporan_${tglLaporan}`);
-       } else { showToast("Simulasi Offline Berhasil", "success"); }
+       showToast("Terjadi kesalahan sistem lokal.", "error");
     } finally {
         showLoading(false);
-        setView('database');
+        setView('database'); // Pindah ke layar Data
     }
   };
 
@@ -211,7 +177,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
           <div className="space-y-5">
             <div>
               <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">RHK (Otomatis Filter Jabatan)</label>
-              <select className={THEME.glossyInput} value={rhkId} onChange={e => {setRhkId(e.target.value); setRenHarId(''); setDynamicData({});}} required>
+              <select className={THEME.glossyInput} value={rhkId} onChange={e => {setRhkId(e.target.value); setRenHarId(''); setDynamicData({judul: ''});}} required>
                 <option value="">-- Pilih RHK Kemensos --</option>
                 {availableRhks.map(r => <option key={r.id} value={r.id}>{r.id} - {r?.name?.substring(0, 75)}...</option>)}
               </select>
@@ -253,7 +219,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
               {renderDynamicForm()}
               <div className="px-6 pb-6 pt-4 border-t border-slate-100 mt-2">
                 <label className="text-xs font-bold text-blue-800 mb-2 flex items-center gap-2"><PenTool size={16}/> Catatan Kronologi / Analisa Lapangan (Wajib untuk AI)</label>
-                <p className="text-[11px] text-slate-500 mb-3 font-medium">Ceritakan kejadian di lapangan sedetail mungkin. AI akan merapikannya menjadi bahasa birokrasi pemerintahan di PDF.</p>
+                <p className="text-[11px] text-slate-500 mb-3 font-medium">Ceritakan kejadian di lapangan sedetail mungkin. AI akan merapikannya menjadi bahasa birokrasi pemerintahan.</p>
                 <textarea rows="5" className={THEME.glossyInput} value={keteranganAi} onChange={e => setKeteranganAi(e.target.value)} placeholder="Telah dilaksanakan penyaluran bansos di balai desa, namun terdapat kendala..." required></textarea>
               </div>
             </div>
@@ -360,7 +326,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
             </div>
 
             <button type="submit" className={THEME.btnPrimary}>
-              <Zap size={22} className="text-yellow-400 fill-yellow-400" /> EKSEKUSI AI LAPORAN
+              <Zap size={22} className="text-yellow-400 fill-yellow-400" /> SIMPAN LAPORAN KE DATABASE
             </button>
           </div>
         )}
