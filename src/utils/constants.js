@@ -12,7 +12,6 @@ export const RHK_TARGETS = {
   "RHK 1": 12, "RHK 2": 180, "RHK 3": 24, "RHK 4": 24, "RHK 5": 36, "RHK 6": 100, "RHK 7": 12, "RHK 8": 24, "RHK 9": 100
 };
 
-// Menambahkan fallback jabatan pada renHar untuk mengakomodasi data lama dari Firebase
 export const DEFAULT_MASTER_RHK_DATA = [
   { id: "RHK 1", jabatan: ["Semua Jabatan", "Pendamping Sosial", "Pendamping Sosial (S1/D4)", "Pendamping Sosial (D3)", "Pendamping Sosial (SMA)"], name: "Penyaluran Bantuan Sosial", renHar: [{id: "1.1", name: "Melakukan edukasi pencairan", jabatan: ["Pendamping Sosial", "Pendamping Sosial (S1/D4)", "Pendamping Sosial (D3)", "Pendamping Sosial (SMA)"]}, {id: "1.2", name: "Melaksanakan Supervisi Permasalahan", jabatan: ["Koordinator Kabupaten (Katimkab)", "Koordinator Wilayah (Korwil)", "Koordinator Provinsi (Katimprov)"]}] },
   { id: "RHK 2", jabatan: ["Semua Jabatan", "Pendamping Sosial", "Pendamping Sosial (S1/D4)", "Pendamping Sosial (D3)", "Pendamping Sosial (SMA)"], name: "Pertemuan Peningkatan Kemampuan Keluarga (P2K2)", renHar: [{id: "2.1", name: "Melaksanakan Pertemuan P2K2", jabatan: ["Pendamping Sosial", "Pendamping Sosial (S1/D4)", "Pendamping Sosial (D3)", "Pendamping Sosial (SMA)"]}, {id: "2.2", name: "Melakukan Supervisi P2K2", jabatan: ["Koordinator Kabupaten (Katimkab)", "Koordinator Wilayah (Korwil)"]}] },
@@ -36,17 +35,17 @@ export const getFilteredRhk = (masterRhk, profile) => {
   const safeMasterRhk = Array.isArray(masterRhk) ? masterRhk : [];
   if(!profile?.jabatanPkh && !profile?.jabatanAsn) return safeMasterRhk;
 
-  const userPkh = String(profile?.jabatanPkh || "").toLowerCase();
-  const userAsn = String(profile?.jabatanAsn || "").toLowerCase();
+  const userPkh = String(profile?.jabatanPkh || "").toLowerCase().trim();
+  const userAsn = String(profile?.jabatanAsn || "").toLowerCase().trim();
 
   return safeMasterRhk.filter(rhk => {
-    if (!rhk.jabatan) return true;
+    if (!rhk.jabatan || rhk.jabatan.length === 0) return true;
     const jabatanArray = Array.isArray(rhk.jabatan) ? rhk.jabatan : [rhk.jabatan];
     return jabatanArray.some(jab => {
-       const j = String(jab).toLowerCase();
+       const j = String(jab).toLowerCase().trim();
        if (j.includes("semua jabatan")) return true;
-       if (userPkh && userPkh !== '-' && (j.includes(userPkh) || userPkh.includes(j))) return true;
-       if (userAsn && userAsn !== '-' && (j.includes(userAsn) || userAsn.includes(j))) return true;
+       if (userPkh && userPkh !== '-' && (j === userPkh || userPkh.includes(j) || j.includes(userPkh))) return true;
+       if (userAsn && userAsn !== '-' && (j === userAsn || userAsn.includes(j) || j.includes(userAsn))) return true;
        return false;
     });
   });
@@ -54,19 +53,17 @@ export const getFilteredRhk = (masterRhk, profile) => {
 
 export const getFilteredRenHar = (renHarArray, profile) => {
   if (!Array.isArray(renHarArray)) return [];
-  const userPkh = String(profile?.jabatanPkh || "").toLowerCase();
-  const userAsn = String(profile?.jabatanAsn || "").toLowerCase();
+  const userPkh = String(profile?.jabatanPkh || "").toLowerCase().trim();
+  const userAsn = String(profile?.jabatanAsn || "").toLowerCase().trim();
 
   return renHarArray.filter(ren => {
-    // Jika tidak ada batasan jabatan dari Firebase, izinkan tampil
-    if (!ren.jabatan || ren.jabatan.length === 0) return true; 
-    
+    if (!ren.jabatan || ren.jabatan.length === 0) return true;
     const jabatanArray = Array.isArray(ren.jabatan) ? ren.jabatan : [ren.jabatan];
     return jabatanArray.some(jab => {
-       const j = String(jab).toLowerCase();
+       const j = String(jab).toLowerCase().trim();
        if (j.includes("semua jabatan")) return true;
-       if (userPkh && userPkh !== '-' && (j.includes(userPkh) || userPkh.includes(j))) return true;
-       if (userAsn && userAsn !== '-' && (j.includes(userAsn) || userAsn.includes(j))) return true;
+       if (userPkh && userPkh !== '-' && (j === userPkh || userPkh.includes(j) || j.includes(userPkh))) return true;
+       if (userAsn && userAsn !== '-' && (j === userAsn || userAsn.includes(j) || j.includes(userAsn))) return true;
        return false;
     });
   });
