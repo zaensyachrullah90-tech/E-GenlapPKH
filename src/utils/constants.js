@@ -6,6 +6,7 @@ export const THEME = {
   btnAccent: "w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-3.5 rounded-xl shadow-md active:scale-95 transition-all flex justify-center items-center gap-2"
 };
 
+// URL GAS TETAP ADA TAPI TIDAK DIPAKAI DULU (KITA BYPASS)
 export const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyLxsYQZJG6NRZCs5O1tW306bXhFWT423evkaWhaUAa4DoT4zDDEwoeAIl1_EpRe3SKSg/exec";
 
 export const RHK_TARGETS = {
@@ -44,8 +45,9 @@ export const getFilteredRhk = (masterRhk, profile) => {
     return jabatanArray.some(jab => {
        const j = String(jab).toLowerCase().trim();
        if (j === "semua jabatan" || j === "") return true;
-       if (userPkh && userPkh !== '-' && (j === userPkh || j.includes(userPkh) || userPkh.includes(j))) return true;
-       if (userAsn && userAsn !== '-' && (j === userAsn || j.includes(userAsn) || userAsn.includes(j))) return true;
+       // PERBAIKAN: STRICT EXACT MATCH (Tidak menggunakan includes lagi agar tidak bocor)
+       if (userPkh !== '-' && j === userPkh) return true;
+       if (userAsn !== '-' && j === userAsn) return true;
        return false;
     });
   });
@@ -62,8 +64,9 @@ export const getFilteredRenHar = (renHarArray, profile) => {
     return jabatanArray.some(jab => {
        const j = String(jab).toLowerCase().trim();
        if (j === "semua jabatan" || j === "") return true;
-       if (userPkh && userPkh !== '-' && (j === userPkh || j.includes(userPkh) || userPkh.includes(j))) return true;
-       if (userAsn && userAsn !== '-' && (j === userAsn || j.includes(userAsn) || userAsn.includes(j))) return true;
+       // PERBAIKAN: STRICT EXACT MATCH (Mencegah "Pendamping Sosial" bocor ke S1/D4)
+       if (userPkh !== '-' && j === userPkh) return true;
+       if (userAsn !== '-' && j === userAsn) return true;
        return false;
     });
   });
