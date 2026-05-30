@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wand2, Clock, MapPin, FileText, ListTodo, PenTool, CloudUpload, Image as ImageIcon, XCircle, FilePlus, Trash2, Zap, Users } from 'lucide-react';
+import { Wand2, Clock, MapPin, FileText, ListTodo, PenTool, CloudUpload, Image as ImageIcon, XCircle, FilePlus, Trash2, Zap } from 'lucide-react';
 import { THEME, GAS_API_URL, getFilteredRhk, getFilteredRenHar, getBulanFolder } from '../utils/constants';
 import { ref, update } from "firebase/database";
 
@@ -9,7 +9,6 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
   const [tglLaporan, setTglLaporan] = useState('');
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
-  const [kabupaten, setKabupaten] = useState(profile?.kabupaten || '');
   const [kecamatan, setKecamatan] = useState('');
   const [desa, setDesa] = useState('');
 
@@ -29,6 +28,9 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
   const availableRhks = getFilteredRhk(masterRhk, profile);
   const selectedRhkMaster = availableRhks.find(r => r.id === rhkId);
   const availableRenHars = getFilteredRenHar(selectedRhkMaster?.renHar, profile);
+
+  // KABUPATEN DIAMBIL LANGSUNG DARI PROFIL (READ ONLY)
+  const kabupaten = profile?.kabupaten || 'Belum Diatur di Profil';
 
   const addSurat = () => setSuratList([...suratList, { id: Date.now(), nomor: '', tgl: '', perihal: '' }]);
   const removeSurat = (id) => setSuratList(suratList.filter(s => s.id !== id));
@@ -119,6 +121,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
     
     showLoading(true); 
     
+    // Identitas otomatis mengirim (Nama, NIP, Jabatan, TTD, dll dari profil)
     const payload = {
        identitas: profile,
        lokasi: { kabupaten, kecamatan, desa },
@@ -144,8 +147,8 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
       const updatedReports = [newReport, ...reports];
       setReports(updatedReports);
       
-      const user = auth.currentUser;
-      if (user) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
+      const user = auth?.currentUser;
+      if (user && db) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
       
       if (!profile.driveId) {
           showToast("Laporan diunduh ke HP. Mohon upload manual.", "success");
@@ -166,8 +169,8 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
        const updatedReports = [newReport, ...reports];
        setReports(updatedReports);
 
-       const user = auth.currentUser;
-       if (user) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
+       const user = auth?.currentUser;
+       if (user && db) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
 
        if (!profile.driveId) {
            showToast("Laporan Diunduh (Offline Mode).", "success");
@@ -190,7 +193,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
           <h3 className="text-sm font-bold text-slate-800 mb-5 border-b border-slate-100 pb-2 flex items-center gap-2"><ListTodo size={18} className="text-amber-500"/> 1. Tentukan Kegiatan Utama</h3>
           <div className="space-y-5">
             <div>
-              <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">RHK (Tampil Sesuai Jabatan)</label>
+              <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">RHK (Otomatis Filter Jabatan)</label>
               <select className={THEME.glossyInput} value={rhkId} onChange={e => {setRhkId(e.target.value); setRenHarId(''); setDynamicData({});}} required>
                 <option value="">-- Pilih RHK Kemensos --</option>
                 {availableRhks.map(r => <option key={r.id} value={r.id}>{r.id} - {r?.name?.substring(0, 75)}...</option>)}
@@ -198,7 +201,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
             </div>
             {rhkId && (
               <div className="animate-in fade-in slide-in-from-top-2">
-                <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Rencana Harian (Tampil Sesuai Jabatan)</label>
+                <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Rencana Harian (Otomatis Filter Jabatan)</label>
                 <select className={THEME.glossyInput} value={renHarId} onChange={e => setRenHarId(e.target.value)} required>
                   <option value="">-- Pilih Rencana Harian --</option>
                   {availableRenHars.map(h => <option key={h.id} value={h.id}>{h.id} - {h?.name?.substring(0, 75)}...</option>)}
@@ -230,7 +233,10 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
                 <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Jam Selesai</label><input type="time" className={THEME.glossyInput} value={jamSelesai} onChange={e => setJamSelesai(e.target.value)} required /></div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-slate-100">
-                <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kabupaten/Kota</label><input type="text" className={THEME.glossyInput} value={kabupaten} onChange={e => setKabupaten(e.target.value)} required /></div>
+                <div>
+                   <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kabupaten/Kota (Otomatis)</label>
+                   <input type="text" className={`${THEME.glossyInput} bg-slate-100 cursor-not-allowed text-slate-500 font-bold`} value={kabupaten} readOnly title="Diambil otomatis dari Pengaturan Profil Anda" />
+                </div>
                 <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kecamatan</label><input type="text" className={THEME.glossyInput} value={kecamatan} onChange={e => setKecamatan(e.target.value)} placeholder="Contoh: Binuang" required /></div>
                 <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Desa/Kelurahan</label><input type="text" className={THEME.glossyInput} value={desa} onChange={e => setDesa(e.target.value)} placeholder="Contoh: Pualam Sari" required /></div>
               </div>
