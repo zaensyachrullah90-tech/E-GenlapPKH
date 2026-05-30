@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wand2, Clock, MapPin, FileText, ListTodo, PenTool, CloudUpload, Image as ImageIcon, XCircle, FilePlus, Trash2, Zap } from 'lucide-react';
-import { THEME, GAS_API_URL, getFilteredRhk, getFilteredRenHar, getBulanFolder } from '../utils/constants';
+import { THEME, GAS_API_URL, getFilteredRhk, getFilteredRenHar, getBulanFolder } from '../utils/constants.js';
 import { ref, update } from "firebase/database";
 
 export default function EngineView({ profile, tokens, role, setTokens, showToast, showLoading, reports, setReports, masterRhk, setView, auth, db }) {
@@ -9,8 +9,17 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
   const [tglLaporan, setTglLaporan] = useState('');
   const [jamMulai, setJamMulai] = useState('');
   const [jamSelesai, setJamSelesai] = useState('');
+  
+  const [kabupaten, setKabupaten] = useState('');
   const [kecamatan, setKecamatan] = useState('');
   const [desa, setDesa] = useState('');
+
+  // Sinkronisasi otomatis kabupaten dari profil saat halaman dimuat
+  useEffect(() => {
+    if (profile?.kabupaten && !kabupaten) {
+      setKabupaten(profile.kabupaten);
+    }
+  }, [profile, kabupaten]);
 
   const [namaKpm, setNamaKpm] = useState('');
   const [nik, setNik] = useState('');
@@ -24,13 +33,9 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
   const [fotoList, setFotoList] = useState([]); 
   const [lampiranList, setLampiranList] = useState([]);
 
-  // LOGIKA SMART FILTER: RHK dan Rencana Harian
   const availableRhks = getFilteredRhk(masterRhk, profile);
   const selectedRhkMaster = availableRhks.find(r => r.id === rhkId);
   const availableRenHars = getFilteredRenHar(selectedRhkMaster?.renHar, profile);
-
-  // KABUPATEN DIAMBIL LANGSUNG DARI PROFIL (READ ONLY)
-  const kabupaten = profile?.kabupaten || 'Belum Diatur di Profil';
 
   const addSurat = () => setSuratList([...suratList, { id: Date.now(), nomor: '', tgl: '', perihal: '' }]);
   const removeSurat = (id) => setSuratList(suratList.filter(s => s.id !== id));
@@ -106,9 +111,10 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
 
   const triggerDummyDownload = (filename) => {
       const element = document.createElement("a");
-      const file = new Blob(["Dokumen PDF ini di-generate secara lokal karena Link Drive kosong/error."], {type: 'application/pdf'});
+      const errorMessage = "LAPORAN OFFLINE / FALLBACK\n\nSistem gagal mengunduh PDF karena koneksi ke Server Backend (Google Apps Script) terputus atau API belum mengembalikan format PDF (Base64) yang benar.\n\nNamun, data historis Anda tetap TERSIMPAN di menu Data Laporan.";
+      const file = new Blob([errorMessage], {type: 'text/plain'});
       element.href = URL.createObjectURL(file);
-      element.download = filename + ".pdf";
+      element.download = filename + "_ERROR_LOG.txt";
       document.body.appendChild(element); element.click(); document.body.removeChild(element);
   };
 
@@ -121,7 +127,6 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
     
     showLoading(true); 
     
-    // Identitas otomatis mengirim (Nama, NIP, Jabatan, TTD, dll dari profil)
     const payload = {
        identitas: profile,
        lokasi: { kabupaten, kecamatan, desa },
@@ -151,7 +156,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
       if (user && db) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
       
       if (!profile.driveId) {
-          showToast("Laporan diunduh ke HP. Mohon upload manual.", "success");
+          showToast("Sistem Backend tidak menemukan Link Drive, log diunduh.", "error");
           if(result.pdfBase64) {
             const link = document.createElement('a'); link.href = `data:application/pdf;base64,${result.pdfBase64}`; link.download = `Laporan_${tglLaporan}.pdf`;
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
@@ -173,7 +178,7 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
        if (user && db) await update(ref(db, `users/${user.uid}`), { reports: updatedReports, tokens: tokens - 1 });
 
        if (!profile.driveId) {
-           showToast("Laporan Diunduh (Offline Mode).", "success");
+           showToast("Server gagal merespons, log diunduh.", "success");
            triggerDummyDownload(`Laporan_${tglLaporan}`);
        } else { showToast("Simulasi Offline Berhasil", "success"); }
     } finally {
@@ -233,9 +238,8 @@ export default function EngineView({ profile, tokens, role, setTokens, showToast
                 <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Jam Selesai</label><input type="time" className={THEME.glossyInput} value={jamSelesai} onChange={e => setJamSelesai(e.target.value)} required /></div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-5 border-t border-slate-100">
-                <div>
-                   <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kabupaten/Kota (Otomatis)</label>
-                   <input type="text" className={`${THEME.glossyInput} bg-slate-100 cursor-not-allowed text-slate-500 font-bold`} value={kabupaten} readOnly title="Diambil otomatis dari Pengaturan Profil Anda" />
+                <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kabupaten/Kota</label>
+                  <input type="text" className={THEME.glossyInput} value={kabupaten} onChange={e => setKabupaten(e.target.value)} placeholder="Masukkan Kabupaten" required />
                 </div>
                 <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kecamatan</label><input type="text" className={THEME.glossyInput} value={kecamatan} onChange={e => setKecamatan(e.target.value)} placeholder="Contoh: Binuang" required /></div>
                 <div><label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">Desa/Kelurahan</label><input type="text" className={THEME.glossyInput} value={desa} onChange={e => setDesa(e.target.value)} placeholder="Contoh: Pualam Sari" required /></div>
