@@ -43,9 +43,9 @@ export const getFilteredRhk = (masterRhk, profile) => {
     const jabatanArray = Array.isArray(rhk.jabatan) ? rhk.jabatan : [rhk.jabatan];
     return jabatanArray.some(jab => {
        const j = String(jab).toLowerCase().trim();
-       if (j.includes("semua jabatan")) return true;
-       if (userPkh && userPkh !== '-' && (j === userPkh || userPkh.includes(j) || j.includes(userPkh))) return true;
-       if (userAsn && userAsn !== '-' && (j === userAsn || userAsn.includes(j) || j.includes(userAsn))) return true;
+       if (j === "semua jabatan" || j === "") return true;
+       if (userPkh && userPkh !== '-' && (j === userPkh || j.includes(userPkh) || userPkh.includes(j))) return true;
+       if (userAsn && userAsn !== '-' && (j === userAsn || j.includes(userAsn) || userAsn.includes(j))) return true;
        return false;
     });
   });
@@ -61,9 +61,9 @@ export const getFilteredRenHar = (renHarArray, profile) => {
     const jabatanArray = Array.isArray(ren.jabatan) ? ren.jabatan : [ren.jabatan];
     return jabatanArray.some(jab => {
        const j = String(jab).toLowerCase().trim();
-       if (j.includes("semua jabatan")) return true;
-       if (userPkh && userPkh !== '-' && (j === userPkh || userPkh.includes(j) || j.includes(userPkh))) return true;
-       if (userAsn && userAsn !== '-' && (j === userAsn || userAsn.includes(j) || j.includes(userAsn))) return true;
+       if (j === "semua jabatan" || j === "") return true;
+       if (userPkh && userPkh !== '-' && (j === userPkh || j.includes(userPkh) || userPkh.includes(j))) return true;
+       if (userAsn && userAsn !== '-' && (j === userAsn || j.includes(userAsn) || userAsn.includes(j))) return true;
        return false;
     });
   });
